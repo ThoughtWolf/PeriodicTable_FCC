@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Define the PSQL command to connect to your PostgreSQL database
+PSQL="psql --username=freecodecamp --dbname=periodic_table -t --no-align -c"
+
+# Get the input either from command line argument or user prompt
+input="$1"
+if [ -z "$input" ]; then
+    echo "Please provide an element as an argument."
+else
+  # Function to output element details
+  print_element() {
+      local data=$1
+      IFS='|' read -r atomic_number symbol name category atomic_mass melting_point boiling_point <<< "$data"
+      echo -e "The element with atomic number $atomic_number is $name ($symbol). It's a $category, with a mass of $atomic_mass amu. $name has a melting point of $melting_point celsius and a boiling point of $boiling_point celsius."
+  }
+
+  # Query the database for the element
+  query_result=$($PSQL "SELECT atomic_number, symbol, name, type, atomic_mass, melting_point_celsius, boiling_point_celsius FROM elements full join properties using(atomic_number) full join types using (type_id) WHERE CAST(atomic_number AS VARCHAR) = '$input' OR symbol='$input' OR name='$input';")
+
+  # Check if a result was found
+  if [ -n "$query_result" ]; then
+      print_element "$query_result"
+  else
+      echo "I could not find that element in the database."
+  fi
+fi
